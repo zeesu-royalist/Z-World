@@ -68,21 +68,21 @@ export class ThirdPersonCamera {
     }
 
     // 2. GTA San Andreas Camera: When hero turns or moves,
-    // camera automatically pans and steers to stay directly behind hero's back!
-    if (isHeroMoving && this.manualMouseTimer > 0.25) {
+    // camera smoothly glides and steers behind hero's back with cinematic fluidity
+    if (isHeroMoving && this.manualMouseTimer > 0.35) {
       // The angle directly behind the hero's back
       const heroBehindYaw = THREE.MathUtils.euclideanModulo(heroRotationY - Math.PI + Math.PI, Math.PI * 2) - Math.PI;
       const angleDiff = THREE.MathUtils.euclideanModulo(heroBehindYaw - this.targetYaw + Math.PI, Math.PI * 2) - Math.PI;
-      // Smoothly steer camera behind hero's back
-      this.targetYaw += angleDiff * Math.min(delta * 4.5, 1);
+      // Smoothly steer camera behind hero's back without jerk
+      this.targetYaw += angleDiff * Math.min(delta * 2.2, 1);
     }
 
     // Clamp pitch
     this.targetPitch = Math.max(this.minPitch, Math.min(this.maxPitch, this.targetPitch));
 
-    // Smooth interpolation for fluid cinematic feel
-    this.yaw = THREE.MathUtils.lerp(this.yaw, this.targetYaw, Math.min(delta * 18, 1));
-    this.pitch = THREE.MathUtils.lerp(this.pitch, this.targetPitch, Math.min(delta * 18, 1));
+    // Smooth interpolation for fluid cinematic feel (no snap)
+    this.yaw = THREE.MathUtils.lerp(this.yaw, this.targetYaw, Math.min(delta * 14, 1));
+    this.pitch = THREE.MathUtils.lerp(this.pitch, this.targetPitch, Math.min(delta * 16, 1));
 
     // Dynamic distance when sprinting
     if (inputState.sprint && isHeroMoving) {
@@ -106,7 +106,7 @@ export class ThirdPersonCamera {
     if (!this.isInitialized) {
       this.currentLookTarget.copy(this.lookTarget);
     } else {
-      this.currentLookTarget.lerp(this.lookTarget, Math.min(delta * 18, 1));
+      this.currentLookTarget.lerp(this.lookTarget, Math.min(delta * 14, 1));
     }
 
     // 4. Compute Camera Position Behind Player
@@ -137,7 +137,7 @@ export class ThirdPersonCamera {
       this.currentPosition.copy(desiredCamPos);
       this.isInitialized = true;
     } else {
-      this.currentPosition.lerp(desiredCamPos, Math.min(delta * 16, 1));
+      this.currentPosition.lerp(desiredCamPos, Math.min(delta * 12, 1));
     }
 
     this.camera.position.copy(this.currentPosition);

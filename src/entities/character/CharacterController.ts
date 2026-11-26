@@ -13,15 +13,17 @@ export class CharacterController {
   public isGrounded: boolean = true;
   public currentSpeed: number = 0;
   public isMoving: boolean = false;
+  public turnRate: number = 0;
 
   // Movement parameters
-  public walkSpeed: number = 6.0;    // m/s (~22 km/h)
-  public sprintSpeed: number = 12.5; // m/s (~45 km/h)
-  public jumpForce: number = 8.5;    // m/s
+  public walkSpeed: number = 5.5;    // m/s (~20 km/h)
+  public sprintSpeed: number = 11.0; // m/s (~40 km/h)
+  public jumpForce: number = 8.0;    // m/s
   public gravity: number = -24.0;    // m/s^2
 
   private verticalVelocity: number = 0;
   private moveDirection: THREE.Vector3 = new THREE.Vector3();
+  private targetMoveDirection: THREE.Vector3 = new THREE.Vector3();
   private targetRotationY: number = 0;
 
   constructor(
@@ -65,34 +67,42 @@ export class CharacterController {
     const sideInput = (inputState.right ? 1 : 0) - (inputState.left ? 1 : 0);
 
     const hasInput = fwdInput !== 0 || sideInput !== 0;
-    const speed = inputState.sprint ? this.sprintSpeed : this.walkSpeed;
+    const targetSpeed = inputState.sprint ? this.sprintSpeed : this.walkSpeed;
 
-    this.moveDirection.set(0, 0, 0);
     this.isMoving = hasInput;
 
     if (hasInput) {
-      // Combine forward and sideways directions
+      // Compute desired direction vector
       const moveX = camFwdX * fwdInput + camRightX * sideInput;
       const moveZ = camFwdZ * fwdInput + camRightZ * sideInput;
-      this.moveDirection.set(moveX, 0, moveZ).normalize();
+      this.targetMoveDirection.set(moveX, 0, moveZ).normalize();
 
-      // Hero model faces the exact direction of movement
-      this.targetRotationY = Math.atan2(this.moveDirection.x, this.moveDirection.z);
+      // Target facing angle
+      this.targetRotationY = Math.atan2(this.targetMoveDirection.x, this.targetMoveDirection.z);
+
+      // Smoothly blend movement direction into a continuous curve (eliminates sudden sideways snapping)
+      this.moveDirection.lerp(this.targetMoveDirection, Math.min(delta * 9.0, 1));
+      this.currentSpeed = THREE.MathUtils.lerp(this.currentSpeed, targetSpeed, Math.min(delta * 10, 1));
+    } else {
+      // Smooth deceleration to stop
+      this.moveDirection.lerp(new THREE.Vector3(0, 0, 0), Math.min(delta * 12, 1));
+      this.currentSpeed = THREE.MathUtils.lerp(this.currentSpeed, 0, Math.min(delta * 12, 1));
     }
 
-    // Smooth character rotation towards target movement angle
+    // 2. Smooth character turning with natural human angular velocity (no instant jerking!)
     const rotDiff = THREE.MathUtils.euclideanModulo(this.targetRotationY - this.rotation.y + Math.PI, Math.PI * 2) - Math.PI;
-    this.rotation.y += rotDiff * Math.min(delta * 14, 1);
+    this.rotation.y += rotDiff * Math.min(delta * 7.5, 1);
+    this.turnRate = rotDiff;
 
-    // Calculate next horizontal position
-    const moveDist = (hasInput ? speed : 0) * delta;
+    // 3. Calculate next horizontal position
+    const moveDist = this.currentSpeed * delta;
     const nextX = this.position.x + this.moveDirection.x * moveDist;
     const nextZ = this.position.z + this.moveDirection.z * moveDist;
 
-    // 2. Query exact road surface height at (nextX, nextZ)
+    // 4. Query exact road surface height at (nextX, nextZ)
     const roadY = cityManager ? cityManager.getGroundHeight(nextX, nextZ, this.position.y) : 6.18;
 
-    // 3. Grounding & Jump Physics
+    // 5. Grounding & Jump Physics
     if (this.isGrounded) {
       if (inputState.jump) {
         this.verticalVelocity = this.jumpForce;
@@ -119,13 +129,11 @@ export class CharacterController {
     this.position.x = nextX;
     this.position.z = nextZ;
 
-    // 4. Sync Rapier Kinematic translation
+    // 6. Sync Rapier Kinematic translation
     this.rigidBody.setTranslation(
       { x: this.position.x, y: this.position.y + 0.48, z: this.position.z },
       true
     );
-
-    this.currentSpeed = hasInput ? speed : 0;
   }
 
   public teleport(pos: THREE.Vector3): void {

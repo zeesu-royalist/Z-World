@@ -86,7 +86,8 @@ export class Player {
     this.model.update(
       delta,
       this.controller.currentSpeed,
-      this.controller.isGrounded
+      this.controller.isGrounded,
+      this.controller.turnRate
     );
   }
 

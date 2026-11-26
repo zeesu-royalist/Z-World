@@ -232,14 +232,14 @@ export class CharacterModel {
     return new THREE.AnimationClip('idle_natural', duration, tracks);
   }
 
-  public update(delta: number, speed: number, isGrounded: boolean): void {
+  public update(delta: number, speed: number, isGrounded: boolean, turnRate: number = 0): void {
     const isMoving = isGrounded && speed > 0.3;
-    const speedRatio = Math.min(speed / 12.5, 1.0); // 0 to 1
+    const speedRatio = Math.min(speed / 11.0, 1.0); // 0 to 1
 
     if (this.mixer && this.idleAction && this.runAction) {
       if (isMoving) {
         // Moving: crossfade into Running animation
-        const targetTimeScale = THREE.MathUtils.lerp(1.1, 2.3, speedRatio);
+        const targetTimeScale = THREE.MathUtils.lerp(1.0, 2.2, speedRatio);
         this.runAction.timeScale = targetTimeScale;
 
         this.currentRunWeight = THREE.MathUtils.lerp(this.currentRunWeight, 1.0, delta * 8);
@@ -252,13 +252,22 @@ export class CharacterModel {
           forwardLean,
           delta * 8
         );
+
+        // Natural subtle body lean into turn
+        const bankLean = -Math.max(-0.08, Math.min(0.08, turnRate * 0.1));
+        this.modelWrapper.rotation.z = THREE.MathUtils.lerp(
+          this.modelWrapper.rotation.z,
+          bankLean,
+          delta * 8
+        );
       } else {
         // Stopped: smoothly blend into Natural Standing Idle pose
         this.currentIdleWeight = THREE.MathUtils.lerp(this.currentIdleWeight, 1.0, delta * 8);
         this.currentRunWeight = THREE.MathUtils.lerp(this.currentRunWeight, 0.0, delta * 8);
 
-        // Reset forward lean
+        // Reset forward and sideways lean
         this.modelWrapper.rotation.x = THREE.MathUtils.lerp(this.modelWrapper.rotation.x, 0, delta * 8);
+        this.modelWrapper.rotation.z = THREE.MathUtils.lerp(this.modelWrapper.rotation.z, 0, delta * 8);
       }
 
       this.idleAction.setEffectiveWeight(this.currentIdleWeight);
