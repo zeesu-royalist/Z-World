@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Z-World | Open World GTA 3D</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        user-select: none;
+      }
+
+      html, body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background-color: #7bb5eb;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        color: #fff;
+      }
+
+      /* Game 3D Canvas strictly fills viewport behind UI */
+      #game-canvas {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+        outline: none;
+        z-index: 1;
+      }
+
+      /* ---------------- LOADING SCREEN ---------------- */
+      #loading-screen {
+        position: fixed;
+        inset: 0;
+        background: radial-gradient(circle at center, #182232 0%, #080c14 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+        transition: opacity 0.6s ease;
+      }
+
+      .loading-content {
+        max-width: 580px;
+        width: 90%;
+        text-align: center;
+      }
+
+      .game-logo h1 {
+        font-size: 3.8rem;
+        font-weight: 900;
+        letter-spacing: 6px;
+        background: linear-gradient(135deg, #ff416c, #ff4b2b, #ffb300);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: 0 0 30px rgba(255, 75, 43, 0.4);
+        margin-bottom: 5px;
+      }
+
+      .game-logo .subtitle {
+        font-size: 1.05rem;
+        letter-spacing: 5px;
+        color: #7d93b2;
+        font-weight: 600;
+        margin-bottom: 40px;
+      }
+
+      .progress-container {
+        margin: 25px 0;
+      }
+
+      .progress-bar-bg {
+        width: 100%;
+        height: 12px;
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 6px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+      }
+
+      .progress-bar-fill {
+        width: 0%;
+        height: 100%;
+        background: linear-gradient(90deg, #ff4b2b, #ffb300);
+        border-radius: 6px;
+        transition: width 0.25s ease;
+        box-shadow: 0 0 15px rgba(255, 75, 43, 0.8);
+      }
+
+      .progress-info {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 10px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        color: #9ab4d6;
+      }
+
+      .start-btn {
+        margin-top: 20px;
+        padding: 16px 48px;
+        font-size: 1.25rem;
+        font-weight: 800;
+        letter-spacing: 3px;
+        color: #fff;
+        background: linear-gradient(135deg, #ff416c, #ff4b2b);
+        border: none;
+        border-radius: 30px;
+        cursor: pointer;
+        box-shadow: 0 0 25px rgba(255, 75, 43, 0.6);
+        transition: transform 0.2s, box-shadow 0.2s;
+        animation: pulse 1.5s infinite;
+      }
+
+      .start-btn:hover {
+        transform: scale(1.06);
+        box-shadow: 0 0 35px rgba(255, 75, 43, 0.9);
+      }
+
+      @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.03); }
+      }
+
+      .game-tips {
+        margin-top: 35px;
+        font-size: 0.9rem;
+        color: #6a82a0;
+      }
+
+      .game-tips b {
+        color: #ffb300;
+      }
+
+      /* ---------------- HUD OVERLAY ---------------- */
+      #game-hud {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 100;
+      }
+
+      /* Top Right: GTA Style Cash & Stars */
+      .hud-top-right {
+        position: absolute;
+        top: 20px;
+        right: 25px;
+        text-align: right;
+      }
+
+      .hud-cash {
+        font-size: 2.2rem;
+        font-weight: 900;
+        color: #2ecc71;
+        text-shadow: 2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0 0 15px rgba(46, 204, 113, 0.6);
+        letter-spacing: 2px;
+      }
+
+      .hud-wanted {
+        margin-top: 4px;
+        font-size: 1.6rem;
+        letter-spacing: 4px;
+        color: rgba(255, 255, 255, 0.2);
+        text-shadow: 1px 1px 2px #000;
+      }
+
+      .hud-wanted .star.active {
+        color: #f1c40f;
+        text-shadow: 0 0 10px #f1c40f, 1px 1px 2px #000;
+      }
+
+      /* Center Interaction Prompt */
+      .interact-prompt {
+        position: absolute;
+        top: 55%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(10, 16, 26, 0.85);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(8px);
+        padding: 10px 22px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 700;
+        font-size: 1.05rem;
+        letter-spacing: 1px;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+      }
+
+      .key-badge {
+        background: #ff4b2b;
+        color: #fff;
+        padding: 4px 10px;
+        border-radius: 4px;
+        font-weight: 900;
+        font-size: 0.95rem;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+      }
+
+      /* Notifications Toast */
+      .notification-area {
+        position: absolute;
+        top: 25px;
+        left: 25px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .hud-toast {
+        background: rgba(15, 23, 36, 0.9);
+        border-left: 4px solid #ff4b2b;
+        padding: 8px 16px;
+        border-radius: 4px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+        transition: opacity 0.4s;
+      }
+
+      /* Bottom Right: Weapon & Ammo */
+      .hud-weapon-card {
+        position: absolute;
+        bottom: 25px;
+        right: 25px;
+        background: rgba(15, 23, 36, 0.85);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(8px);
+        padding: 14px 22px;
+        border-radius: 10px;
+        text-align: right;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+      }
+
+      .weapon-name {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: #9ab4d6;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 4px;
+      }
+
+      .ammo-val {
+        font-size: 2rem;
+        font-weight: 900;
+        color: #fff;
+        letter-spacing: 2px;
+        text-shadow: 1px 1px 4px rgba(0,0,0,0.8);
+      }
+
+      /* Bottom Center: Vitals & Speedometer */
+      .hud-bottom-center {
+        position: absolute;
+        bottom: 25px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .speedometer {
+        background: rgba(15, 23, 36, 0.9);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        padding: 8px 20px;
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .speed-number {
+        font-size: 1.8rem;
+        font-weight: 900;
+        color: #00e5ff;
+        text-shadow: 0 0 10px rgba(0, 229, 255, 0.6);
+      }
+
+      .speed-number small {
+        font-size: 0.8rem;
+        color: #7d93b2;
+      }
+
+      .speed-bar-bg {
+        width: 140px;
+        height: 6px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 3px;
+        overflow: hidden;
+        margin-top: 4px;
+      }
+
+      .speed-bar-fill {
+        width: 0%;
+        height: 100%;
+        background: linear-gradient(90deg, #00e5ff, #ff4b2b);
+        transition: width 0.1s linear;
+      }
+
+      .vitals-container {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        width: 240px;
+      }
+
+      .vital-bar {
+        height: 9px;
+        background: rgba(0, 0, 0, 0.6);
+        border-radius: 4px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .vital-fill {
+        height: 100%;
+        transition: width 0.2s ease;
+      }
+
+      .vital-bar.health .vital-fill {
+        background: linear-gradient(90deg, #2ecc71, #27ae60);
+        box-shadow: 0 0 8px rgba(46, 204, 113, 0.8);
+      }
+
+      .vital-bar.armor .vital-fill {
+        background: linear-gradient(90deg, #3498db, #2980b9);
+        box-shadow: 0 0 8px rgba(52, 152, 219, 0.8);
+      }
+
+      /* ---------------- MINIMAP (strictly 190x190 circle in bottom-left) ---------------- */
+      #minimap-container {
+        position: absolute;
+        bottom: 25px;
+        left: 25px;
+        width: 190px !important;
+        height: 190px !important;
+        max-width: 190px !important;
+        max-height: 190px !important;
+        border-radius: 50%;
+        overflow: hidden !important;
+        box-shadow: 0 8px 35px rgba(0, 0, 0, 0.7);
+        pointer-events: none;
+        z-index: 100;
+      }
+
+      #minimap-canvas {
+        width: 190px !important;
+        height: 190px !important;
+        max-width: 190px !important;
+        max-height: 190px !important;
+        display: block !important;
+        border-radius: 50%;
+      }
+
+      /* ---------------- CROSSHAIR ---------------- */
+      #crosshair {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        z-index: 90;
+      }
+
+      .crosshair-dot {
+        width: 4px;
+        height: 4px;
+        background: #ffffff;
+        border-radius: 50%;
+        box-shadow: 0 0 4px #000;
+      }
+
+      .crosshair-line {
+        position: absolute;
+        background: rgba(255, 255, 255, 0.85);
+        box-shadow: 0 0 3px #000;
+        transition: transform 0.15s ease;
+      }
+
+      .crosshair-line.top {
+        width: 2px;
+        height: 8px;
+        top: -14px;
+        left: 1px;
+      }
+
+      .crosshair-line.bottom {
+        width: 2px;
+        height: 8px;
+        bottom: -14px;
+        left: 1px;
+      }
+
+      .crosshair-line.left {
+        width: 8px;
+        height: 2px;
+        left: -14px;
+        top: 1px;
+      }
+
+      .crosshair-line.right {
+        width: 8px;
+        height: 2px;
+        right: -14px;
+        top: 1px;
+      }
+
+      #crosshair.aiming .crosshair-line.top { transform: translateY(4px); }
+      #crosshair.aiming .crosshair-line.bottom { transform: translateY(-4px); }
+      #crosshair.aiming .crosshair-line.left { transform: translateX(4px); }
+      #crosshair.aiming .crosshair-line.right { transform: translateX(-4px); }
+
+      /* ---------------- CONTROLS OVERLAY ---------------- */
+      #controls-overlay {
+        position: absolute;
+        top: 80px;
+        left: 25px;
+        pointer-events: none;
+        z-index: 95;
+      }
+
+      .controls-card {
+        background: rgba(12, 18, 28, 0.8);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        backdrop-filter: blur(10px);
+        padding: 14px 18px;
+        border-radius: 8px;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+      }
+
+      .controls-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+        gap: 15px;
+      }
+
+      .controls-header h3 {
+        font-size: 0.95rem;
+        letter-spacing: 1.5px;
+        color: #ffb300;
+      }
+
+      .hint-key {
+        font-size: 0.75rem;
+        color: #7d93b2;
+      }
+
+      .controls-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+
+      .ctrl-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        font-size: 0.8rem;
+      }
+
+      .ctrl-row span {
+        font-weight: 700;
+        color: #fff;
+        background: rgba(255, 255, 255, 0.1);
+        padding: 2px 6px;
+        border-radius: 3px;
+      }
+
+      .ctrl-row small {
+        color: #a0b6d2;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Main Three.js Game Canvas -->
+    <canvas id="game-canvas"></canvas>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
