@@ -14,10 +14,10 @@ export class ThirdPersonCamera {
   public targetPitch: number = 0.18;
 
   // Distances (GTA San Andreas style)
-  public distance: number = 2.6;
-  public targetDistance: number = 2.6;
-  private readonly defaultDistance: number = 2.6;
-  private readonly sprintDistance: number = 3.2;
+  public distance: number = 2.1;
+  public targetDistance: number = 2.1;
+  private readonly defaultDistance: number = 2.1;
+  private readonly sprintDistance: number = 2.6;
 
   // Sensitivity & limits (tuned for mouse/trackpad drag)
   public mouseSensitivity: number = 0.0035;
@@ -25,7 +25,7 @@ export class ThirdPersonCamera {
   public maxPitch: number = 1.10;   // looking down from above
 
   // GTA-style Framing: centered directly behind hero's upper torso
-  public heightOffset: number = 1.05;
+  public heightOffset: number = 0.82;
   private defaultFOV: number = 65;
 
   // Smooth position tracking
