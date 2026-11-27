@@ -15,11 +15,11 @@ export class CharacterController {
   public isMoving: boolean = false;
   public turnRate: number = 0;
 
-  // Movement parameters
-  public walkSpeed: number = 5.5;    // m/s (~20 km/h)
-  public sprintSpeed: number = 11.0; // m/s (~40 km/h)
-  public jumpForce: number = 8.0;    // m/s
-  public gravity: number = -24.0;    // m/s^2
+  // Movement parameters (Tuned for smooth, realistic human speeds)
+  public walkSpeed: number = 3.2;    // m/s (~11.5 km/h, comfortable natural jog)
+  public sprintSpeed: number = 5.6;  // m/s (~20 km/h, athletic smooth sprint)
+  public jumpForce: number = 6.0;    // m/s (~0.8m jump height)
+  public gravity: number = -20.0;    // m/s^2
 
   private verticalVelocity: number = 0;
   private moveDirection: THREE.Vector3 = new THREE.Vector3();
@@ -80,18 +80,18 @@ export class CharacterController {
       // Target facing angle
       this.targetRotationY = Math.atan2(this.targetMoveDirection.x, this.targetMoveDirection.z);
 
-      // Smoothly blend movement direction into a continuous curve (eliminates sudden sideways snapping)
-      this.moveDirection.lerp(this.targetMoveDirection, Math.min(delta * 9.0, 1));
-      this.currentSpeed = THREE.MathUtils.lerp(this.currentSpeed, targetSpeed, Math.min(delta * 10, 1));
+      // Smoothly blend movement direction into a continuous curve
+      this.moveDirection.lerp(this.targetMoveDirection, Math.min(delta * 8.0, 1.0));
+      this.currentSpeed = THREE.MathUtils.lerp(this.currentSpeed, targetSpeed, Math.min(delta * 6.5, 1.0));
     } else {
       // Smooth deceleration to stop
-      this.moveDirection.lerp(new THREE.Vector3(0, 0, 0), Math.min(delta * 12, 1));
-      this.currentSpeed = THREE.MathUtils.lerp(this.currentSpeed, 0, Math.min(delta * 12, 1));
+      this.moveDirection.lerp(new THREE.Vector3(0, 0, 0), Math.min(delta * 8.0, 1.0));
+      this.currentSpeed = THREE.MathUtils.lerp(this.currentSpeed, 0, Math.min(delta * 7.5, 1.0));
     }
 
-    // 2. Smooth character turning with natural human angular velocity (no instant jerking!)
+    // 2. Smooth character turning with natural human angular velocity
     const rotDiff = THREE.MathUtils.euclideanModulo(this.targetRotationY - this.rotation.y + Math.PI, Math.PI * 2) - Math.PI;
-    this.rotation.y += rotDiff * Math.min(delta * 7.5, 1);
+    this.rotation.y += rotDiff * Math.min(delta * 7.0, 1.0);
     this.turnRate = rotDiff;
 
     // 3. Calculate next horizontal position
@@ -102,16 +102,24 @@ export class CharacterController {
     // 4. Query exact road surface height at (nextX, nextZ)
     const roadY = cityManager ? cityManager.getGroundHeight(nextX, nextZ, this.position.y) : 6.18;
 
-    // 5. Grounding & Jump Physics
+    // 5. Grounding & Jump Physics (Smooth elevation tracking absorbs polygon seams and curbs)
     if (this.isGrounded) {
       if (inputState.jump) {
         this.verticalVelocity = this.jumpForce;
         this.isGrounded = false;
         this.position.y += this.verticalVelocity * delta;
       } else {
-        // Firmly track road elevation uphill and downhill
         this.verticalVelocity = 0;
-        this.position.y = THREE.MathUtils.lerp(this.position.y, roadY, Math.min(delta * 25, 1));
+        const yDiff = roadY - this.position.y;
+        if (Math.abs(yDiff) < 0.65) {
+          // Smoothly glide along the road elevation
+          this.position.y = THREE.MathUtils.lerp(this.position.y, roadY, Math.min(delta * 12.0, 1.0));
+        } else if (yDiff < -0.65) {
+          // Walked off high ledge
+          this.isGrounded = false;
+        } else {
+          this.position.y = roadY;
+        }
       }
     } else {
       // In air (Jumping / Falling)
@@ -139,7 +147,5 @@ export class CharacterController {
   public teleport(pos: THREE.Vector3): void {
     this.position.copy(pos);
     this.rigidBody.setTranslation({ x: pos.x, y: pos.y + 0.48, z: pos.z }, true);
-    this.verticalVelocity = 0;
-    this.isGrounded = true;
   }
 }

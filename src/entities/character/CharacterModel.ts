@@ -233,41 +233,42 @@ export class CharacterModel {
   }
 
   public update(delta: number, speed: number, isGrounded: boolean, turnRate: number = 0): void {
-    const isMoving = isGrounded && speed > 0.3;
-    const speedRatio = Math.min(speed / 11.0, 1.0); // 0 to 1
+    const isMoving = isGrounded && speed > 0.25;
+    const speedRatio = Math.min(speed / 5.6, 1.0); // 0 to 1 based on 5.6 m/s max sprint
 
     if (this.mixer && this.idleAction && this.runAction) {
       if (isMoving) {
         // Moving: crossfade into Running animation
-        const targetTimeScale = THREE.MathUtils.lerp(1.0, 2.2, speedRatio);
+        // 0.95 at start up to 1.30 at full athletic sprint - matches stride cadence perfectly!
+        const targetTimeScale = THREE.MathUtils.lerp(0.95, 1.30, speedRatio);
         this.runAction.timeScale = targetTimeScale;
 
-        this.currentRunWeight = THREE.MathUtils.lerp(this.currentRunWeight, 1.0, delta * 8);
-        this.currentIdleWeight = THREE.MathUtils.lerp(this.currentIdleWeight, 0.0, delta * 8);
+        this.currentRunWeight = THREE.MathUtils.lerp(this.currentRunWeight, 1.0, delta * 7.0);
+        this.currentIdleWeight = THREE.MathUtils.lerp(this.currentIdleWeight, 0.0, delta * 7.0);
 
-        // Athletic forward lean when sprinting
-        const forwardLean = speedRatio * 0.12;
+        // Athletic subtle forward lean when sprinting
+        const forwardLean = speedRatio * 0.05;
         this.modelWrapper.rotation.x = THREE.MathUtils.lerp(
           this.modelWrapper.rotation.x,
           forwardLean,
-          delta * 8
+          delta * 5.0
         );
 
         // Natural subtle body lean into turn
-        const bankLean = -Math.max(-0.08, Math.min(0.08, turnRate * 0.1));
+        const bankLean = -Math.max(-0.035, Math.min(0.035, turnRate * 0.04));
         this.modelWrapper.rotation.z = THREE.MathUtils.lerp(
           this.modelWrapper.rotation.z,
           bankLean,
-          delta * 8
+          delta * 5.0
         );
       } else {
         // Stopped: smoothly blend into Natural Standing Idle pose
-        this.currentIdleWeight = THREE.MathUtils.lerp(this.currentIdleWeight, 1.0, delta * 8);
-        this.currentRunWeight = THREE.MathUtils.lerp(this.currentRunWeight, 0.0, delta * 8);
+        this.currentIdleWeight = THREE.MathUtils.lerp(this.currentIdleWeight, 1.0, delta * 7.0);
+        this.currentRunWeight = THREE.MathUtils.lerp(this.currentRunWeight, 0.0, delta * 7.0);
 
         // Reset forward and sideways lean
-        this.modelWrapper.rotation.x = THREE.MathUtils.lerp(this.modelWrapper.rotation.x, 0, delta * 8);
-        this.modelWrapper.rotation.z = THREE.MathUtils.lerp(this.modelWrapper.rotation.z, 0, delta * 8);
+        this.modelWrapper.rotation.x = THREE.MathUtils.lerp(this.modelWrapper.rotation.x, 0, delta * 5.0);
+        this.modelWrapper.rotation.z = THREE.MathUtils.lerp(this.modelWrapper.rotation.z, 0, delta * 5.0);
       }
 
       this.idleAction.setEffectiveWeight(this.currentIdleWeight);

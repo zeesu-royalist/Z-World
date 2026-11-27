@@ -17,6 +17,8 @@ export class CityManager {
 
   // All road, street, pavement, and ground meshes
   public roadMeshes: THREE.Mesh[] = [];
+  // Strictly sidewalk, footpath, and curb surfaces for pedestrian NPCs
+  public sidewalkMeshes: THREE.Mesh[] = [];
   private raycaster: THREE.Raycaster = new THREE.Raycaster();
   private downVector: THREE.Vector3 = new THREE.Vector3(0, -1, 0);
 
@@ -42,6 +44,7 @@ export class CityManager {
     let meshesCount = 0;
     const materialSet = new Set<THREE.Material>();
     this.roadMeshes = [];
+    this.sidewalkMeshes = [];
 
     // Traverse and collect road and street surfaces
     this.cityScene.traverse((child) => {
@@ -78,6 +81,15 @@ export class CityManager {
           combinedName.includes('concrete')
         ) {
           this.roadMeshes.push(mesh);
+        }
+
+        // Strictly sidewalk / footpath / curb / concrete pedestrian areas
+        if (
+          combinedName.includes('pavement') ||
+          combinedName.includes('curb') ||
+          combinedName.includes('concrete')
+        ) {
+          this.sidewalkMeshes.push(mesh);
         }
       }
     });
@@ -124,6 +136,61 @@ export class CityManager {
 
     // Default main road elevation fallback
     return 6.18;
+  }
+
+  /**
+   * Raycasts straight down to determine if (x, z) is specifically on a SIDEWALK / FOOTPATH.
+   * Returns exact sidewalk surface elevation if on pavement/curb, or null if on road/building.
+   */
+  public getSidewalkHeight(x: number, z: number, currentY: number): number | null {
+    const rayStartY = Math.max(currentY + 6.0, 15.0);
+    this.raycaster.set(new THREE.Vector3(x, rayStartY, z), this.downVector);
+    this.raycaster.far = 120;
+
+    const hits = this.raycaster.intersectObjects(this.sidewalkMeshes, true);
+    if (hits.length > 0) {
+      const hitY = hits[0].point.y;
+      // Guarantee the sidewalk is near the character's ground plane (not a rooftop)
+      if (Math.abs(hitY - currentY) <= 3.5) {
+        return hitY;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Samples candidate points around origin to find a confirmed sidewalk position.
+   */
+  public findNearbySidewalkPoint(
+    origin: THREE.Vector3,
+    minDist: number = 10.0,
+    maxDist: number = 32.0,
+    heading?: number
+  ): { position: THREE.Vector3; angle: number } | null {
+    // Generate candidate angles: prefer forward cone if heading given
+    const numCandidates = 14;
+    const baseHeading = heading !== undefined ? heading : Math.random() * Math.PI * 2;
+
+    for (let i = 0; i < numCandidates; i++) {
+      const angle =
+        heading !== undefined
+          ? baseHeading + (Math.random() - 0.5) * 1.8
+          : (i / numCandidates) * Math.PI * 2 + Math.random() * 0.3;
+      const dist = minDist + Math.random() * (maxDist - minDist);
+
+      const cx = origin.x + Math.sin(angle) * dist;
+      const cz = origin.z + Math.cos(angle) * dist;
+
+      const swY = this.getSidewalkHeight(cx, cz, origin.y);
+      if (swY !== null) {
+        return {
+          position: new THREE.Vector3(cx, swY, cz),
+          angle
+        };
+      }
+    }
+
+    return null;
   }
 
   private optimizeMaterial(mat: THREE.Material): void {

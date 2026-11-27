@@ -13,6 +13,7 @@ import { LoadingScreen } from './ui/LoadingScreen';
 import { HUD } from './ui/HUD';
 import { Minimap } from './ui/Minimap';
 import { ControlsOverlay } from './ui/ControlsOverlay';
+import { CrowdManager } from './world/CrowdManager';
 
 class ZWorldGame {
   private engine: Engine;
@@ -25,6 +26,7 @@ class ZWorldGame {
   private thirdPersonCamera!: ThirdPersonCamera;
   private vehicleCamera!: VehicleCamera;
   private vehicleManager!: VehicleManager;
+  private crowdManager!: CrowdManager;
 
   private loadingScreen: LoadingScreen;
   private hud!: HUD;
@@ -70,7 +72,11 @@ class ZWorldGame {
       this.thirdPersonCamera = new ThirdPersonCamera(this.engine.camera);
       this.vehicleCamera = new VehicleCamera(this.engine.camera);
 
-      this.loadingScreen.setProgress(92, 'INITIALIZING VEHICLE SYSTEM (AWAITING .GLB MODELS)...');
+      this.loadingScreen.setProgress(88, 'STREAMING DYNAMIC CITY CROWD (just_people.glb)...');
+      this.crowdManager = new CrowdManager(this.engine.scene, this.cityManager);
+      await this.crowdManager.init('/characters/just_people.glb');
+
+      this.loadingScreen.setProgress(94, 'INITIALIZING VEHICLE SYSTEM (AWAITING .GLB MODELS)...');
       this.vehicleManager = new VehicleManager(this.engine.scene, this.physicsWorld);
 
       this.loadingScreen.setProgress(98, 'INITIALIZING GTA HUD & RADAR...');
@@ -125,13 +131,19 @@ class ZWorldGame {
         : playerPos;
       this.environment.update(activePos);
 
-      // 6. Update Minimap / Radar
+      // 6. Update dynamic proximity crowd around hero
       const playerYaw = this.player.isInVehicle && this.player.activeVehicle
         ? this.player.activeVehicle.group.rotation.y
         : this.thirdPersonCamera.yaw;
+      const isHeroMoving = this.player.isInVehicle
+        ? Math.abs(this.player.activeVehicle?.speed ?? 0) > 0.5
+        : this.player.controller.isMoving;
+      this.crowdManager.update(delta, activePos, playerYaw, isHeroMoving);
+
+      // 7. Update Minimap / Radar
       this.minimap.update(activePos, playerYaw, this.vehicleManager.vehicles);
 
-      // 7. Reset single-frame mouse deltas
+      // 8. Reset single-frame mouse deltas
       this.input.resetDeltas();
     });
 
