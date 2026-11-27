@@ -32,13 +32,13 @@ export class CharacterController {
   ) {
     this.position.copy(spawnPoint);
 
-    // Dynamic Kinematic RigidBody for character
+    // Dynamic Kinematic RigidBody for character (scaled for 0.76m hero)
     const bodyDesc = physicsWorld.rapier.RigidBodyDesc.kinematicPositionBased()
-      .setTranslation(spawnPoint.x, spawnPoint.y + 0.48, spawnPoint.z);
+      .setTranslation(spawnPoint.x, spawnPoint.y + 0.38, spawnPoint.z);
     this.rigidBody = physicsWorld.world.createRigidBody(bodyDesc);
 
-    // Capsule Collider (scaled for 0.95m human)
-    const capsuleDesc = physicsWorld.rapier.ColliderDesc.capsule(0.24, 0.20)
+    // Capsule Collider (scaled for 0.76m human)
+    const capsuleDesc = physicsWorld.rapier.ColliderDesc.capsule(0.19, 0.16)
       .setFriction(0.0)
       .setRestitution(0.0);
     this.collider = physicsWorld.world.createCollider(capsuleDesc, this.rigidBody);

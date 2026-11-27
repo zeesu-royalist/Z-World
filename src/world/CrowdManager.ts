@@ -154,8 +154,8 @@ export class CrowdManager {
   private masterClip: THREE.AnimationClip | null = null;
   private pedestrians: ActivePedestrian[] = [];
 
-  // Exact scale factor matching the hero's 0.95m height
-  private readonly PEDESTRIAN_SCALE = 0.26;
+  // Exact scale factor matching the hero's 0.76m height (proportional to compact vehicles)
+  private readonly PEDESTRIAN_SCALE = 0.208;
 
   // 2-tier LOD distances:
   // - Close range: up to 50 meters (full skeletal animation)

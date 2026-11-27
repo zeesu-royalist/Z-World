@@ -9,8 +9,8 @@ export class CharacterModel {
   public runAction?: THREE.AnimationAction;
 
   public isHeroLoaded: boolean = false;
-  // Scaled height for natural proportion with city streets and buildings
-  private baseHeight: number = 0.95;
+  // Scaled height for natural proportion with compact vehicles and city streets (0.76m)
+  private baseHeight: number = 0.76;
 
   // Animation blending weights
   private currentIdleWeight: number = 1.0;

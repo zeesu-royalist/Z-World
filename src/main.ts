@@ -9,11 +9,11 @@ import { Player } from './entities/character/Player';
 import { ThirdPersonCamera } from './entities/camera/ThirdPersonCamera';
 import { VehicleCamera } from './entities/vehicles/VehicleCamera';
 import { VehicleManager } from './entities/vehicles/VehicleManager';
+import { Helicopter } from './entities/vehicles/Helicopter';
 import { LoadingScreen } from './ui/LoadingScreen';
 import { HUD } from './ui/HUD';
-import { Minimap } from './ui/Minimap';
-import { ControlsOverlay } from './ui/ControlsOverlay';
 import { CrowdManager } from './world/CrowdManager';
+import { TrafficManager } from './world/TrafficManager';
 
 class ZWorldGame {
   private engine: Engine;
@@ -27,11 +27,10 @@ class ZWorldGame {
   private vehicleCamera!: VehicleCamera;
   private vehicleManager!: VehicleManager;
   private crowdManager!: CrowdManager;
+  private trafficManager!: TrafficManager;
 
   private loadingScreen: LoadingScreen;
   private hud!: HUD;
-  private minimap!: Minimap;
-  private controlsOverlay!: ControlsOverlay;
 
   constructor() {
     this.loadingScreen = new LoadingScreen();
@@ -76,13 +75,20 @@ class ZWorldGame {
       this.crowdManager = new CrowdManager(this.engine.scene, this.cityManager);
       await this.crowdManager.init('/characters/just_people.glb');
 
-      this.loadingScreen.setProgress(94, 'INITIALIZING VEHICLE SYSTEM (AWAITING .GLB MODELS)...');
+      this.loadingScreen.setProgress(92, 'INITIALIZING VEHICLES & POLICE CHOPPER...');
       this.vehicleManager = new VehicleManager(this.engine.scene, this.physicsWorld);
 
-      this.loadingScreen.setProgress(98, 'INITIALIZING GTA HUD & RADAR...');
+      // Spawn police chopper ready for flight
+      const chopperPos = new THREE.Vector3(6.0, 6.25, 8.5);
+      const chopper = new Helicopter(this.physicsWorld, chopperPos);
+      this.vehicleManager.addVehicle(chopper);
+
+      this.loadingScreen.setProgress(95, 'STREAMING DIVERSE CITY TRAFFIC FLEET...');
+      this.trafficManager = new TrafficManager(this.engine.scene, this.cityManager, this.physicsWorld);
+      await this.trafficManager.init(this.vehicleManager);
+
+      this.loadingScreen.setProgress(98, 'INITIALIZING GTA HUD...');
       this.hud = new HUD();
-      this.minimap = new Minimap();
-      this.controlsOverlay = new ControlsOverlay();
 
       // Setup game update loop
       this.setupGameLoop();
@@ -140,8 +146,8 @@ class ZWorldGame {
         : this.player.controller.isMoving;
       this.crowdManager.update(delta, activePos, playerYaw, isHeroMoving);
 
-      // 7. Update Minimap / Radar
-      this.minimap.update(activePos, playerYaw, this.vehicleManager.vehicles);
+      // 7. Update city vehicular traffic flow & anti-collision AI
+      this.trafficManager.update(delta, activePos);
 
       // 8. Reset single-frame mouse deltas
       this.input.resetDeltas();

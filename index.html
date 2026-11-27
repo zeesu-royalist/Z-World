@@ -336,31 +336,6 @@
         box-shadow: 0 0 8px rgba(52, 152, 219, 0.8);
       }
 
-      /* ---------------- MINIMAP (strictly 190x190 circle in bottom-left) ---------------- */
-      #minimap-container {
-        position: absolute;
-        bottom: 25px;
-        left: 25px;
-        width: 190px !important;
-        height: 190px !important;
-        max-width: 190px !important;
-        max-height: 190px !important;
-        border-radius: 50%;
-        overflow: hidden !important;
-        box-shadow: 0 8px 35px rgba(0, 0, 0, 0.7);
-        pointer-events: none;
-        z-index: 100;
-      }
-
-      #minimap-canvas {
-        width: 190px !important;
-        height: 190px !important;
-        max-width: 190px !important;
-        max-height: 190px !important;
-        display: block !important;
-        border-radius: 50%;
-      }
-
       /* ---------------- CROSSHAIR ---------------- */
       #crosshair {
         position: fixed;
@@ -419,67 +394,6 @@
       #crosshair.aiming .crosshair-line.left { transform: translateX(4px); }
       #crosshair.aiming .crosshair-line.right { transform: translateX(-4px); }
 
-      /* ---------------- CONTROLS OVERLAY ---------------- */
-      #controls-overlay {
-        position: absolute;
-        top: 80px;
-        left: 25px;
-        pointer-events: none;
-        z-index: 95;
-      }
-
-      .controls-card {
-        background: rgba(12, 18, 28, 0.8);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        backdrop-filter: blur(10px);
-        padding: 14px 18px;
-        border-radius: 8px;
-        box-shadow: 0 8px 30px rgba(0,0,0,0.5);
-      }
-
-      .controls-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 10px;
-        gap: 15px;
-      }
-
-      .controls-header h3 {
-        font-size: 0.95rem;
-        letter-spacing: 1.5px;
-        color: #ffb300;
-      }
-
-      .hint-key {
-        font-size: 0.75rem;
-        color: #7d93b2;
-      }
-
-      .controls-grid {
-        display: flex;
-        flex-direction: column;
-        gap: 5px;
-      }
-
-      .ctrl-row {
-        display: flex;
-        justify-content: space-between;
-        gap: 20px;
-        font-size: 0.8rem;
-      }
-
-      .ctrl-row span {
-        font-weight: 700;
-        color: #fff;
-        background: rgba(255, 255, 255, 0.1);
-        padding: 2px 6px;
-        border-radius: 3px;
-      }
-
-      .ctrl-row small {
-        color: #a0b6d2;
-      }
     </style>
   </head>
   <body>
